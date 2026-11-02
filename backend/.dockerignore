@@ -1,0 +1,7 @@
+venv
+__pycache__
+.pytest_cache
+test_*.py
+evaluate.py
+scan_folder.py
+requirements-dev.txt

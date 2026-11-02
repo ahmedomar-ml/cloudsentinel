@@ -1,0 +1,61 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Fictional hardened stack that passes every check in the rule set.",
+  "Resources": {
+    "SecureBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "Private",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "aws:kms" } }
+          ]
+        },
+        "VersioningConfiguration": { "Status": "Enabled" },
+        "LoggingConfiguration": { "DestinationBucketName": "central-log-bucket" }
+      }
+    },
+    "WebSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "HTTPS only",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "CidrIp": "0.0.0.0/0" }
+        ]
+      }
+    },
+    "MainDatabase": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t3.small",
+        "Engine": "postgres",
+        "PubliclyAccessible": false,
+        "StorageEncrypted": true,
+        "BackupRetentionPeriod": 14,
+        "MasterUsername": "app",
+        "ManageMasterUserPassword": true
+      }
+    },
+    "ReadOnlyPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": ["s3:GetObject"],
+              "Resource": "arn:aws:s3:::secure-bucket-demo/*"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Fictional stack with a few real issues and several values that cannot be resolved (UNKNOWN).",
+  "Parameters": {
+    "AdminCidr": { "Type": "String" },
+    "EncryptDb": { "Type": "String", "AllowedValues": ["yes", "no"] }
+  },
+  "Conditions": {
+    "EncryptCondition": { "Fn::Equals": [{ "Ref": "EncryptDb" }, "yes"] }
+  },
+  "Resources": {
+    "AppBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "AccessControl": "Private",
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": false,
+          "RestrictPublicBuckets": true
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            { "ServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" } }
+          ]
+        },
+        "VersioningConfiguration": { "Status": "Suspended" }
+      }
+    },
+    "AdminSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Admin access",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "CidrIp": { "Ref": "AdminCidr" } },
+          { "IpProtocol": "tcp", "FromPort": 443, "ToPort": 443, "CidrIp": "0.0.0.0/0" }
+        ]
+      }
+    },
+    "OrdersDB": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": "db.t3.small",
+        "Engine": "postgres",
+        "PubliclyAccessible": false,
+        "StorageEncrypted": { "Fn::If": ["EncryptCondition", true, false] },
+        "BackupRetentionPeriod": 7,
+        "MasterUsername": "orders",
+        "MasterUserPassword": "{{resolve:secretsmanager:orders/db:SecretString:password}}"
+      }
+    },
+    "ReportsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": "lambda.amazonaws.com" },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "reports",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                { "Effect": "Allow", "Action": ["s3:*"], "Resource": "*" }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "AlertsTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {}
+    }
+  }
+}
