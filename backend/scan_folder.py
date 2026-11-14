@@ -1,5 +1,5 @@
 """
-بيفحص كل ملفات CloudFormation (JSON) في فولدر، ويطلّع إحصائيات: كام template اتفحص، كام مورد اتحلل،
+بيفحص كل ملفات CloudFormation (JSON و YAML) في فولدر، ويطلّع إحصائيات: كام template اتفحص، كام مورد اتحلل،
 وإيه الأنواع اللي مش مدعومة. مفيد لتجربة الأداة على templates حقيقية.
 
 التشغيل:
@@ -10,10 +10,10 @@
 """
 
 import collections
-import json
 import sys
 from pathlib import Path
 
+from cfn.loader import load_template_text
 from cfn.parser import TemplateError
 from cfn.scanner import scan_template
 
@@ -24,25 +24,27 @@ def main(folder: str) -> None:
     unsupported = collections.Counter()
     crashes = []
 
-    for path in sorted(Path(folder).rglob("*.json")):
+    files = sorted(p for ext in ("*.json", "*.yaml", "*.yml") for p in Path(folder).rglob(ext))
+    for path in files:
         if ".git" in path.parts:
             continue
+        fmt = "yaml" if path.suffix in (".yaml", ".yml") else "json"
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            stats["invalid JSON"] += 1
+            data = load_template_text(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, TemplateError):
+            stats[f"not loadable as template ({fmt})"] += 1
             continue
         try:
             result = scan_template(data)
         except TemplateError:
-            stats["not a CloudFormation template"] += 1
+            stats[f"not a CloudFormation template ({fmt})"] += 1
             continue
         except Exception as exc:  # لو ده حصل يبقى في bug
             stats["CRASH"] += 1
             crashes.append((str(path), repr(exc)))
             continue
 
-        stats["scanned"] += 1
+        stats[f"scanned ({fmt})"] += 1
         if result["summary"]["resources_analyzed"]:
             stats["with at least one supported resource"] += 1
         for key in ("resources_analyzed", "resources_unsupported", "total_checks", "passed", "failed", "unknown", "not_applicable"):

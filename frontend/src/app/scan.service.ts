@@ -93,7 +93,7 @@ export class ScanService {
   private http = inject(HttpClient);
 
   // عنوان الـ Backend المنشور (من Render). بعد ما تنشره، غيّر السطر ده بالعنوان الحقيقي بتاعك.
-  private readonly deployedApi = 'https://cloudsentinel-eta.vercel.app';
+  private readonly deployedApi = 'https://cloudsentinel-api.onrender.com';
 
   // على جهازك بيكلم الـ Backend المحلي، ولما الموقع يتنشر بيكلم الـ Backend المنشور
   readonly baseUrl =
@@ -113,12 +113,18 @@ export class ScanService {
     return this.http.post<ScanResult>(`${this.baseUrl}/api/cfn/scan/sample/${id}`, {});
   }
 
+  // JSON template = object, YAML template = raw text
   scanTemplate(template: unknown) {
-    return this.http.post<ScanResult>(`${this.baseUrl}/api/cfn/scan`, { template });
+    const body = typeof template === 'string' ? { template_text: template } : { template };
+    return this.http.post<ScanResult>(`${this.baseUrl}/api/cfn/scan`, body);
   }
 
   compare(before: unknown, after: unknown) {
-    return this.http.post<CompareResult>(`${this.baseUrl}/api/cfn/compare`, { before, after });
+    const body = {
+      ...(typeof before === 'string' ? { before_text: before } : { before }),
+      ...(typeof after === 'string' ? { after_text: after } : { after }),
+    };
+    return this.http.post<CompareResult>(`${this.baseUrl}/api/cfn/compare`, body);
   }
 
   rules() {

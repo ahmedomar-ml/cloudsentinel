@@ -76,8 +76,8 @@ const UPLOADED = '__uploaded__';
             }
             <label class="cs-sample cs-upload" [class.disabled]="loading()">
               <strong>Upload CloudFormation template</strong>
-              <span>A JSON template (max 1MB). YAML is not supported yet.</span>
-              <input type="file" accept=".json,application/json" (change)="onFile($event)" [disabled]="loading()" />
+              <span>A JSON or YAML template (max 1MB).</span>
+              <input type="file" accept=".json,.yaml,.yml,.template,application/json,text/yaml" (change)="onFile($event)" [disabled]="loading()" />
             </label>
           </div>
         </section>
@@ -628,18 +628,22 @@ export class DashboardComponent {
       return;
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(await file.text());
-    } catch {
-      this.error.set('This file is not valid JSON. (YAML templates are not supported yet.)');
+    // JSON بنبعته object، أما YAML بنبعته كنص والـ Backend هو اللي بيقرأه
+    const text = await file.text();
+    if (!text.trim()) {
+      this.error.set('The file is empty.');
       return;
     }
-
-    const obj = parsed as Record<string, unknown> | null;
-    if (typeof obj !== 'object' || obj === null || Array.isArray(obj) || !('Resources' in obj)) {
-      this.error.set("This does not look like a CloudFormation template (it has no 'Resources' section).");
-      return;
+    let parsed: unknown = text;
+    try {
+      const json = JSON.parse(text) as Record<string, unknown> | null;
+      if (typeof json !== 'object' || json === null || Array.isArray(json) || !('Resources' in json)) {
+        this.error.set("This does not look like a CloudFormation template (it has no 'Resources' section).");
+        return;
+      }
+      parsed = json;
+    } catch {
+      // not JSON: treat it as YAML text and let the server validate it
     }
 
     this.uploaded.set({ name: file.name, template: parsed });

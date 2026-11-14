@@ -52,3 +52,54 @@ def test_cfn_compare():
 
 def test_legacy_endpoints_still_work():
     assert client.post("/api/scan/sample/insecure-startup").json()["summary"]["failed"] == 11
+
+
+YAML_TEXT = """
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: PublicRead
+"""
+YAML_FIXED = """
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+"""
+
+
+def test_cfn_scan_yaml_text():
+    r = client.post("/api/cfn/scan", json={"template_text": YAML_TEXT})
+    assert r.status_code == 200
+    s1 = next(x for x in r.json()["results"] if x["rule_id"] == "S3-001")
+    assert s1["status"] == "FAIL"
+
+
+def test_cfn_scan_needs_exactly_one_input():
+    assert client.post("/api/cfn/scan", json={}).status_code == 422
+    both = {"template": {"Resources": {}}, "template_text": YAML_TEXT}
+    assert client.post("/api/cfn/scan", json=both).status_code == 422
+
+
+def test_cfn_scan_bad_yaml_is_422():
+    r = client.post("/api/cfn/scan", json={"template_text": "Resources: [unclosed"})
+    assert r.status_code == 422
+    assert "Invalid" in r.json()["detail"]
+
+
+def test_cfn_scan_yaml_alias_is_422():
+    r = client.post("/api/cfn/scan", json={"template_text": "Resources:\n  A: &x\n    Type: AWS::S3::Bucket\n  B: *x\n"})
+    assert r.status_code == 422
+
+
+def test_cfn_compare_with_yaml_text():
+    r = client.post("/api/cfn/compare", json={"before_text": YAML_TEXT, "after_text": YAML_FIXED})
+    assert r.status_code == 200
+    assert r.json()["counts"]["resolved"] >= 1

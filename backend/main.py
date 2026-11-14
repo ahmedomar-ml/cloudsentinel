@@ -8,6 +8,7 @@ CloudSentinel AI - Backend (FastAPI)
 """
 
 import os
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from cfn.compare import compare_scans
+from cfn.loader import load_template_text
 from cfn.parser import TemplateError
 from cfn.rules import RULES
 from cfn.samples import CFN_SAMPLES
@@ -55,12 +57,27 @@ class ScanRequest(BaseModel):
 
 
 class TemplateRequest(BaseModel):
-    template: dict
+    template: Optional[dict] = None       # JSON template as an object
+    template_text: Optional[str] = None   # JSON or YAML template as raw text
 
 
 class CompareRequest(BaseModel):
-    before: dict
-    after: dict
+    before: Optional[dict] = None
+    after: Optional[dict] = None
+    before_text: Optional[str] = None
+    after_text: Optional[str] = None
+
+
+def _resolve(obj: Optional[dict], text: Optional[str], label: str) -> dict:
+    """Return the template as a dict from either an object or raw JSON/YAML text (exactly one must be given)."""
+    if (obj is None) == (text is None):
+        raise HTTPException(status_code=422, detail=f"Provide exactly one of '{label}' or '{label}_text'.")
+    if obj is not None:
+        return obj
+    try:
+        return load_template_text(text)
+    except TemplateError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 def _scan_or_422(template: dict) -> dict:
@@ -153,11 +170,13 @@ def cfn_scan_sample(sample_id: str):
 
 @app.post("/api/cfn/scan")
 def cfn_scan(request: TemplateRequest):
-    """فحص CloudFormation template (JSON) مرفوع من المستخدم."""
-    return _scan_or_422(request.template)
+    """فحص CloudFormation template (JSON أو YAML) مرفوع من المستخدم."""
+    return _scan_or_422(_resolve(request.template, request.template_text, "template"))
 
 
 @app.post("/api/cfn/compare")
 def cfn_compare(request: CompareRequest):
     """مقارنة فحصين: قبل وبعد التعديل."""
-    return compare_scans(_scan_or_422(request.before), _scan_or_422(request.after))
+    before = _resolve(request.before, request.before_text, "before")
+    after = _resolve(request.after, request.after_text, "after")
+    return compare_scans(_scan_or_422(before), _scan_or_422(after))
