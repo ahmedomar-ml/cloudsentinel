@@ -93,7 +93,7 @@ export class ScanService {
   private http = inject(HttpClient);
 
   // عنوان الـ Backend المنشور (من Render). بعد ما تنشره، غيّر السطر ده بالعنوان الحقيقي بتاعك.
-  private readonly deployedApi = 'https://cloudsentinel-gtv80kwi7-ahmed-omar3.vercel.app';
+  private readonly deployedApi = 'cloudsentinel-eta.vercel.app';
 
   // على جهازك بيكلم الـ Backend المحلي، ولما الموقع يتنشر بيكلم الـ Backend المنشور
   readonly baseUrl =
