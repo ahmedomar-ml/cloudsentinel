@@ -34,8 +34,8 @@ const UPLOADED = '__uploaded__';
     <div class="cs-bg"></div>
     <main class="cs-wrap">
       <header class="cs-hero">
-        <div class="cs-badge"><span class="cs-dot"></span> CLOUDSENTINEL AI</div>
-        <h1>Intelligent Cloud Security Analysis</h1>
+        <div class="cs-badge"><span class="cs-dot"></span> CLOUDSENTINEL </div>
+        <h1>Cloud Template Security Analysis</h1>
         <p>
           Scan AWS CloudFormation templates, identify misconfigurations, see exactly why each check
           passed, failed or could not be evaluated, and verify your fixes.
@@ -350,7 +350,7 @@ const UPLOADED = '__uploaded__';
         </section>
       }
 
-      <footer class="cs-foot">CloudSentinel AI · academic project · rules-based detection</footer>
+      <footer class="cs-foot">CloudSentinel  · academic project · rules-based detection</footer>
     </main>
   `,
   styles: [
