@@ -23,7 +23,7 @@ interface CompareRow {
   lowerIsBetter: boolean;
 }
 
-const MAX_UPLOAD_BYTES = 1_000_000; // 1MB كفاية لـ template
+const MAX_UPLOAD_BYTES = 3_000_000; // 3MB كفاية لـ template
 const UPLOADED = '__uploaded__';
 
 @Component({
@@ -76,7 +76,7 @@ const UPLOADED = '__uploaded__';
             }
             <label class="cs-sample cs-upload" [class.disabled]="loading()">
               <strong>Upload CloudFormation template</strong>
-              <span>A JSON or YAML template (max 1MB).</span>
+              <span>A JSON or YAML template (max 3MB).</span>
               <input type="file" accept=".json,.yaml,.yml,.template,application/json,text/yaml" (change)="onFile($event)" [disabled]="loading()" />
             </label>
           </div>
