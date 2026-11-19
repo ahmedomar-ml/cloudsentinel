@@ -1,5 +1,5 @@
 """
-CloudSentinel AI - Backend (FastAPI)
+CloudSentinel  - Backend (FastAPI)
 
 تشغيل:
     uvicorn main:app --reload
@@ -24,7 +24,7 @@ from cfn.scanner import scan_template
 from samples import SAMPLE_ENVIRONMENTS
 from scanner import scan
 
-app = FastAPI(title="CloudSentinel AI", version="0.1.0")
+app = FastAPI(title="CloudSentinel ", version="0.1.0")
 
 # الـ API عام على النت، فبنرفض أي request أكبر من الحد ده (الـ frontend أصلًا بيمنع أكتر من 1MB للملف)
 MAX_BODY_BYTES = 3_000_000
